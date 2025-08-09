@@ -56,9 +56,7 @@ ForensicsSAM-released/
 
 ## 🖼 Method Overview
 <p align="center">
-  <img src="<img width="938" height="390" alt="image" src="src/ForensicsSAM.png" />
-" width="800">![Uploading image.png…]()
-
+  <img src="src/ForensicsSAM.png" width="800" />
 </p>
 *Figure 1: Overall architecture of our proposed method.*
 
