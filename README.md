@@ -49,25 +49,50 @@ ForensicsSAM-released/
 ├── weight/                # Pretrained model weights
 ├── inference.py           # Inference script
 └── README.md              # Project description
-
 ```
 
 ---
 
-## 🖼 Method Overview
+## 📋 Method Overview
 <p align="center">
-  <img src="src/ForensicsSAM.png" width="800" />
+  <img src="src/ForensicsSAM.png" width="800" /><br>
+  <em>Figure 1: Overview of the proposed ForensicsSAM framework. Given an input image, ForensicsSAM outputs the image-level detection results (real or forged, clean or adversarial) as well as a pixel-level forgery mask..</em>
 </p>
-*Figure 1: Overall architecture of our proposed method.*
+
 
 ---
 
 ## 📊 Results
-| Dataset        | Metric        | Baseline | Ours |
-|----------------|--------------|----------|------|
-| Dataset A      | IoU          | 0.xx     | **0.xx** |
-| Dataset B      | F1           | 0.xx     | **0.xx** |
-| Dataset C Adv. | Robust-Acc   | 0.xx     | **0.xx** |
+### Table III  
+**Pixel-level forgery localization performance (F1).**  
+First and second ranking are highlighted in **bold** and _underline_, respectively.  
+
+| IFDL Method  | CASIAv1+ | MISD   | Columbia | DSO-1  | Coverage | NIST   | CocoGlide | IPM15k | ACDSee | In-the-wild | Average |
+|--------------|---------|--------|----------|--------|----------|--------|-----------|--------|--------|-------------|---------|
+| MVSS-Net++   | 0.655   | 0.590  | 0.725    | 0.525  | 0.585    | 0.479  | 0.552     | 0.817  | 0.514  | 0.915       | 0.635   |
+| IF-OSN       | 0.647   | 0.667  | 0.521    | 0.500  | 0.510    | 0.418  | 0.567     | 0.920  | 0.484  | **1.000**   | 0.623   |
+| CAT-Net v2   | 0.843   | 0.796  | 0.805    | 0.525  | 0.645    | 0.500  | 0.536     | 0.935  | 0.489  | 0.989       | 0.706   |
+| CoDE         | 0.551   | 0.355  | 0.507    | 0.500  | 0.505    | 0.401  | 0.505     | _0.994_ | 0.489  | **1.000**   | 0.581   |
+| TruFor       | 0.811   | **0.957** | **0.983** | **0.930** | _0.685_ | **0.670** | **0.639** | 0.528  | _0.730_ | 0.657       | 0.759   |
+| AutoSAM      | 0.588   | 0.450  | 0.606    | 0.500  | 0.590    | 0.445  | 0.506     | 0.482  | 0.490  | 0.980       | 0.604   |
+| SAFIRE       | 0.535   | 0.335  | 0.498    | 0.500  | 0.505    | 0.392  | 0.501     | **0.997** | 0.483  | 0.998       | 0.574   |
+| FakeShield   | **0.925** | 0.853  | 0.846    | 0.610  | 0.500    | _0.629_ | 0.502     | 0.587  | 0.522  | 0.662       | 0.664   |
+| **Ours**     | _0.894_ | _0.936_ | _0.989_  | _0.820_ | **0.730** | _0.776_ | 0.585     | 0.768  | **0.770** | _0.905_     | **0.817** |
+
+---
+
+| IFDL Method  | CASIAv1+ | MISD   | Columbia | DSO-1  | Coverage | NIST   | CocoGlide | IPM15k | ACDSee | In-the-wild | Average |
+|--------------|---------|--------|----------|--------|----------|--------|-----------|--------|--------|-------------|---------|
+| MVSS-Net++   | 0.532   | 0.692  | 0.737    | 0.334  | 0.516    | 0.366  | 0.543     | 0.421  | 0.368  | 0.421       | 0.486   |
+| IF-OSN       | 0.554   | 0.732  | 0.748    | 0.443  | 0.339    | 0.311  | 0.459     | 0.465  | 0.377  | 0.589       | 0.500   |
+| CAT-Net v2   | 0.728   | 0.522  | 0.849    | 0.376  | 0.386    | 0.370  | 0.467     | 0.403  | **0.719** | 0.506       | 0.553   |
+| CoDE         | 0.734   | 0.780  | 0.920    | 0.464  | 0.372    | 0.347  | 0.592     | 0.470  | 0.528  | 0.614       | 0.602   |
+| TruFor       | 0.713   | 0.691  | 0.848    | **0.910** | 0.409    | 0.414  | 0.518     | 0.592  | 0.628  | 0.682       | 0.659   |
+| AutoSAM      | 0.740   | 0.763  | 0.916    | 0.464  | 0.628    | 0.436  | 0.545     | 0.640  | 0.479  | 0.608       | 0.626   |
+| SAFIRE       | 0.394   | 0.646  | 0.818    | 0.410  | 0.440    | 0.351  | 0.525     | 0.484  | 0.421  | 0.566       | 0.506   |
+| FakeShield   | 0.617   | 0.543  | 0.810    | 0.569  | 0.414    | **0.592** | **0.739** | 0.456  | 0.707  | 0.587       | 0.593   |
+| **Ours**     | **0.815** | **0.792** | **0.959** | _0.851_ | **0.781** | 0.613  | 0.588     | **0.755** | _0.645_ | **0.734** | **0.753** |
+
 
 More results and ablation studies are available in the paper.
 
