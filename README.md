@@ -8,7 +8,9 @@ Official PyTorch implementation of the paper.
 ---
 
 ## 📌 Abstract
-
+<p align="center">
+  <img src="src/intro.png" width="500" /><br>
+</p>
 Parameter-efficient fine-tuning (PEFT) has emerged as a popular strategy for adapting large vision foundation models—such as the Segment Anything Model (SAM) and LLaVA—to downstream tasks like image forgery detection and localization (IFDL). However, existing PEFT-based approaches often **overlook their vulnerability to adversarial attacks**.  
 We show that **highly transferable adversarial images** can be crafted solely via the upstream model—without accessing the downstream model or training data—significantly degrading IFDL performance.
 
