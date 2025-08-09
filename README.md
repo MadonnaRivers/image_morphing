@@ -56,7 +56,7 @@ ForensicsSAM-released/
 ## 📋 Method Overview
 <p align="center">
   <img src="src/ForensicsSAM.png" width="800" /><br>
-  <em>Figure 1: Overview of the proposed ForensicsSAM framework. Given an input image, ForensicsSAM outputs the image-level detection results (real or forged, clean or adversarial) as well as a pixel-level forgery mask..</em>
+  <em>Figure 1: Overview of the proposed ForensicsSAM framework. Given an input image, ForensicsSAM outputs the image-level detection results (real or forged, clean or adversarial) as well as a pixel-level forgery mask.</em>
 </p>
 
 
@@ -76,7 +76,7 @@ ForensicsSAM-released/
 ### 🔹 Adversarial Robustness
 <p align="center">
   <img src="src/adversarial_robustness.png" width="800"><br>
-  <em>Table 1: Image-level forgery detection performance (ACC). First and second ranking are highlighted in bold and underline, respectively.</em>
+  <em>Figure 2: Comparison of forgery localization before and after  adversarial attack. Red denotes the predicted forged regions.</em>
 </p>
 
 
@@ -155,10 +155,12 @@ python inference.py
 
 ---
 
+## 🙏 Acknowledgement
+- This work is built upon the [SAM](https://github.com/facebookresearch/segment-anything).
 
 ---
 
-## 📄 Citation
+## 🌟 Citation
 If you find our work useful, please cite:
 ```bibtex
 @article{peng2025forensicssam,
