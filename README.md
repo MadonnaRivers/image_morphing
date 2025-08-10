@@ -30,13 +30,6 @@ To address this, we propose **ForensicsSAM**, a unified IFDL framework with buil
 
 Extensive experiments across multiple benchmarks demonstrate that **ForensicsSAM** not only achieves superior resistance to diverse adversarial attacks, but also delivers **state-of-the-art performance** in both image-level forgery detection and pixel-level forgery localization.
 
-
-## 🚀 Highlights
-- **Novelty**: First to integrate [Key Innovation] into [Task].
-- **Performance**: Achieves SOTA on [Dataset A], [Dataset B], with robustness against [Attack Types].
-- **Efficiency**: [Training speed / Parameter count / Inference time improvements].
-- **Reproducibility**: End-to-end training code and pretrained weights provided.
-
 ---
 
 ## 📂 Project Structure
