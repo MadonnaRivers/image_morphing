@@ -98,19 +98,19 @@ pip install -r requirements.txt
 | **Train**         |       |         |    |    |     |
 | CASIAv2           | 7491  | 5098    | ✓  | ✓  |     |
 | IMD20             | 414   | 2000    | ✓  | ✓  |     |
-| FantasticReality  | 16592 | 19423   | ✓  |    | ✓   |
-| TamperedCR        | 24462 | 23981   | ✓  | ✓  | ✓   |
+| FantasticReality  | 16592 | 19423   | ✓  |    |    |
+| TamperedCR        | 24462 | 23981   | ✓  | ✓  |    |
 | **Test**          |       |         |    |    |     |
 | CASIAv1+          | 800   | 920     | ✓  | ✓  |     |
-| MISD              | 620   | 296     | ✓  | ✓  |     |
-| Columbia          | 183   | 180     | ✓  | ✓  |     |
-| DSO-1             | 100   | 100     | ✓  | ✓  |     |
-| Coverage          | 100   | 100     | ✓  | ✓  | ✓   |
-| NIST              | 875   | 564     | ✓  | ✓  |     |
-| CocoGlide         | 512   | 512     | ✓  |    | ✓   |
-| IPM15k            | -     | 15000   |    |    | ✓   |
-| ACDSee            | 364   | 337     | ✓  | ✓  | ✓   |
-| In-the-wild       | -     | 201     |    |    | ✓   |
+| MISD              | 620   | 296     | ✓  |   |     |
+| Columbia          | 183   | 180     | ✓  |   |     |
+| DSO-1             | 100   | 100     | ✓  |   |     |
+| Coverage          | 100   | 100     |   | ✓  |    |
+| NIST              | 875   | 564     | ✓  | ✓  | ✓    |
+| CocoGlide         | 512   | 512     |   |    | ✓   |
+| IPM15k            | -     | 15000   | ✓  | ✓  |    |
+| ACDSee            | 364   | 337     | ✓  | ✓  | ✓  |
+| In-the-wild       | -     | 201     | ✓  |    |    |
 
 2. Organize the folders as:
 ```
