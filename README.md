@@ -160,7 +160,7 @@ If you find our work useful, please cite:
 ```bibtex
 @article{peng2025forensicssam,
   title={ForensicsSAM: Toward Robust and Unified Image Forgery Detection and Localization Resisting to Adversarial Attack},
-  author={Rongxuan Peng, Shunquan Tan, Chenqi Kong, Anwei Luo, Alex C. Kot, and Jiwu Hunag},
+  author={Rongxuan Peng, Shunquan Tan, Chenqi Kong, Anwei Luo, Alex C. Kot, and Jiwu Huang},
   year={2025}
 }
 ```
