@@ -134,6 +134,7 @@ data/
   ├── nist16_au.txt
   ├── wild.txt
 ```
+
 ```
 weight/
   ├── adversary_detector.pth
@@ -141,6 +142,8 @@ weight/
   ├── forgery_experts.pth
   ├── sam_vit_h_4b8939.pth
 ```
+
+3. you can download the pre-trained weight from [google drive](https://drive.google.com/file/d/1rV_1H7VJRpoUa6Z43Tlq8jD_9GVWDykC/view)
 ---
 
 ## 💻 Inference
