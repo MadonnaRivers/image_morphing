@@ -143,7 +143,7 @@ weight/
   ├── sam_vit_h_4b8939.pth
 ```
 
-3. you can download the pre-trained weight from [google drive](https://drive.google.com/file/d/1rV_1H7VJRpoUa6Z43Tlq8jD_9GVWDykC/view)
+3. you can download the pre-trained weight from [google drive](https://drive.google.com/file/d/1stLg8bJ1W2E7dVAHC8TYj917REO4sttt/view)
 ---
 
 ## 💻 Inference
