@@ -23,7 +23,7 @@ huggingface_hub
 # --- Segment Anything (build_sam.py) ---
 icecream
 
-# --- AI-vs-Human detector (ai-vs-human-image-detector/) ---
+# --- Image classifier (image_classifier/) ---
 # Used when running predict.py; API calls it as subprocess (can use own venv).
 transformers
 Pillow

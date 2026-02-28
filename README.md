@@ -50,7 +50,7 @@ Image forgery detection and AI-vs-human classification API. Upload an image to g
 - `forensics_sam/` — Forgery detection model (SAM backbone + experts).
 - `adversary_detector/` — Adversary detection module.
 - `segment_anything/` — SAM backbone.
-- `ai-vs-human-image-detector/` — SigLIP-based AI vs human classifier (run as subprocess from API).
+- `image_classifier/` — SigLIP-based AI vs human classifier (run as subprocess from API).
 
 ## Config
 

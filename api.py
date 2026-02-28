@@ -22,10 +22,10 @@ from fastapi.responses import JSONResponse
 
 # Project root
 ROOT = Path(__file__).resolve().parent
-DETECTOR_SCRIPT = ROOT / "ai-vs-human-image-detector" / "predict.py"
-DETECTOR_PYTHON = ROOT / "ai-vs-human-image-detector" / "venv" / "Scripts" / "python.exe"
+DETECTOR_SCRIPT = ROOT / "image_classifier" / "predict.py"
+DETECTOR_PYTHON = ROOT / "image_classifier" / "venv" / "Scripts" / "python.exe"
 if not DETECTOR_PYTHON.exists():
-    DETECTOR_PYTHON = ROOT / "ai-vs-human-image-detector" / "venv" / "bin" / "python"
+    DETECTOR_PYTHON = ROOT / "image_classifier" / "venv" / "bin" / "python"
 
 app = FastAPI(title="Image Forensics API", description="ForensicsSAM + AI vs Human detector")
 

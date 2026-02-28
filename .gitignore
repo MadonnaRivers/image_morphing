@@ -18,9 +18,9 @@ weight/*.zip
 *.swp
 .DS_Store
 
-# Detector subproject
-ai-vs-human-image-detector/venv/
-ai-vs-human-image-detector/.cache/
+# Image classifier subproject
+image_classifier/venv/
+image_classifier/.cache/
 
 # Optional: large test data (uncomment if you don't want to push)
 # test_folder/
