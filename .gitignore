@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+venv/
+.venv/
+*.egg-info/
+.eggs/
+
+# Weights (download with download_weights.py)
+weight/*.pth
+weight/*.zip
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Detector subproject
+ai-vs-human-image-detector/venv/
+ai-vs-human-image-detector/.cache/
+
+# Optional: large test data (uncomment if you don't want to push)
+# test_folder/

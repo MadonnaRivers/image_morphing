@@ -16,12 +16,12 @@ random.seed(seed)
 np.random.seed(seed)
 # PyTorch 随机数（CPU）
 torch.manual_seed(seed)
-# PyTorch 随机数（GPU）
-torch.cuda.manual_seed(seed)
-torch.cuda.manual_seed_all(seed)  # 多卡训练时用
-# cuDNN 确保确定性
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
+# PyTorch 随机数（GPU，仅当可用时）
+if torch.cuda.is_available():
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 model_type = ['vit_b', 'vit_l', 'vit_h']
 checkpoint = {
@@ -30,19 +30,43 @@ checkpoint = {
     'vit_h': './weight/sam_vit_h_4b8939.pth'
 }
 
-if __name__ == '__main__':
+def _ensure_weights():
+    """Download weights if SAM checkpoint is missing."""
     import os
-    os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+    ckpt = checkpoint.get(model_type[2])
+    if not ckpt or os.path.isfile(ckpt):
+        return
+    os.makedirs("./weight", exist_ok=True)
+    try:
+        from download_weights import main as download_main
+        print("SAM checkpoint missing. Running download_weights.py ...")
+        download_main()
+    except ImportError:
+        pass
+    if not os.path.isfile(ckpt):
+        raise FileNotFoundError(
+            f"Checkpoint not found: {ckpt}\n"
+            "Run: python download_weights.py\n"
+            "Or download from: https://drive.google.com/file/d/1stLg8bJ1W2E7dVAHC8TYj917REO4sttt/view"
+        )
+
+
+if __name__ == '__main__':
     from tqdm import tqdm
+
+    _ensure_weights()
+
+    # CPU-only: use 'cpu'; set to 'cuda' if GPU available
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     sam_type = model_type[2]
     r, image_size = 8, 1024
     normalize_type = 2
 
     sam, image_embedding_size = sam_model_registry[sam_type](image_size=image_size, checkpoint=checkpoint.get(sam_type))
-    forensics_sam = ForensicsSAM(sam, r).cuda().eval()
+    forensics_sam = ForensicsSAM(sam, r).to(device).eval()
 
-    adv_detector = AdversaryDetector().cuda().eval()
+    adv_detector = AdversaryDetector().to(device).eval()
     save_path = "./weight/adversary_detector.pth"
     adv_detector.load_detector(save_path)
 
@@ -85,8 +109,8 @@ if __name__ == '__main__':
 
     with torch.no_grad():
         for idx, (images, gt_masks, forged_label, adv_label) in enumerate(t):
-            images, gt_masks = images.cuda(), gt_masks.cuda()
-            forged_label, adv_label = forged_label.cuda(), adv_label.cuda()
+            images, gt_masks = images.to(device), gt_masks.to(device)
+            forged_label, adv_label = forged_label.to(device), adv_label.to(device)
 
             logits, feats = adv_detector(images)
             preds = torch.argmax(logits, dim=1)

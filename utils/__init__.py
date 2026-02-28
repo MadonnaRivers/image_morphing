@@ -44,7 +44,8 @@ def crop_inference(image, crop_size, inference_func):
     print(image.shape)
     pad_height = max(crop_size[0], ori_height)
     pad_width = max(crop_size[1], ori_width)
-    pred = torch.zeros((b, 1, pad_height, pad_width), dtype=torch.float32).cuda()
+    device = image.device
+    pred = torch.zeros((b, 1, pad_height, pad_width), dtype=torch.float32, device=device)
 
     height_point = [i * crop_size[0] for i in range(int(pad_height // crop_size[0]))]
     if pad_height % crop_size[0] != 0:
@@ -119,9 +120,8 @@ class BinaryDiceLoss(nn.Module):
     def forward(self, input, targets):
         # 获取每个批次的大小 N
         N = targets.shape[0]
-        # 平滑变量
-        smooth = Variable(torch.ones(1))
-        smooth = smooth.cuda()
+        # 平滑变量（与 targets 同设备）
+        smooth = Variable(torch.ones(1, device=targets.device))
         # 将宽高 reshape 到同一纬度
         input_flat = input.view(N, -1)
         targets_flat = targets.view(N, -1)

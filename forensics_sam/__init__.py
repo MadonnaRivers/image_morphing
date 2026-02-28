@@ -244,10 +244,17 @@ class ForensicsSAM(nn.Module):
         return module.named_parameters()
 
     def _load_state_dict(self, module, state_dict):
-        if isinstance(module, (torch.nn.DataParallel, torch.nn.parallel.DistributedDataParallel)):
-            module.module.load_state_dict(state_dict, strict=False)
-        else:
-            module.load_state_dict(state_dict, strict=False)
+        target = module.module if isinstance(module, (torch.nn.DataParallel, torch.nn.parallel.DistributedDataParallel)) else module
+        try:
+            target.load_state_dict(state_dict, strict=False)
+        except Exception as e:
+            if "size mismatch" in str(e) or "shape" in str(e).lower():
+                # Loading ViT-H experts into ViT-B: load only params with matching shapes (e.g. detector)
+                model_state = target.state_dict()
+                matched = {k: v for k, v in state_dict.items() if k in model_state and model_state[k].shape == v.shape}
+                target.load_state_dict(matched, strict=False)
+            else:
+                raise
 
 
 model_type = ['vit_b', 'vit_l', 'vit_h']
