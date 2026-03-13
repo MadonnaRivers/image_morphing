@@ -13,7 +13,9 @@ Speed vs quality: set env FORENSICSAM_IMAGE_SIZE to control inference resolution
   Example: set FORENSICSAM_IMAGE_SIZE=512 before starting the server for faster inference.
 """
 import asyncio
+import json
 import os
+import subprocess
 import tempfile
 from pathlib import Path
 
@@ -138,25 +140,21 @@ def _run_forensics_sam_sync(image_path: str) -> dict:
     }
 
 
-async def _run_detector_async(image_path: str) -> dict:
-    """Run AI-vs-Human detector subprocess, parse JSON from stdout."""
-    proc = await asyncio.create_subprocess_exec(
-        str(DETECTOR_PYTHON),
-        str(DETECTOR_SCRIPT),
-        image_path,
-        "--json",
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
+def _run_detector_sync(image_path: str) -> dict:
+    """Run AI-vs-Human detector subprocess (sync, for use in executor on Windows)."""
+    result = subprocess.run(
+        [str(DETECTOR_PYTHON), str(DETECTOR_SCRIPT), image_path, "--json"],
+        capture_output=True,
         cwd=str(ROOT),
+        timeout=120,
     )
-    stdout, stderr = await proc.communicate()
-    if proc.returncode != 0:
-        return {"error": (stderr or stdout).decode().strip() or "Detector failed"}
+    if result.returncode != 0:
+        err = (result.stderr or result.stdout).decode().strip() or "Detector failed"
+        return {"error": err}
     try:
-        import json
-        return json.loads(stdout.decode().strip())
+        return json.loads(result.stdout.decode().strip())
     except Exception as e:
-        return {"error": f"Parse error: {e}", "raw": stdout.decode()[:200]}
+        return {"error": f"Parse error: {e}", "raw": result.stdout.decode()[:200]}
 
 
 @app.on_event("startup")
@@ -208,7 +206,7 @@ async def analyze(file: UploadFile = File(...)):
     try:
         loop = asyncio.get_event_loop()
         forensics_task = loop.run_in_executor(None, _run_forensics_sam_sync, tmp_path)
-        detector_task = _run_detector_async(tmp_path)
+        detector_task = loop.run_in_executor(None, _run_detector_sync, tmp_path)
         forensics_result, detector_result = await asyncio.gather(forensics_task, detector_task)
     finally:
         try:

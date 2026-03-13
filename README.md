@@ -57,6 +57,10 @@ Image forgery detection and AI-vs-human classification API. Upload an image to g
 - **Inference resolution**: Set env `FORENSICSAM_IMAGE_SIZE` to `512`, `768`, or `1024` (default 1024). Lower = faster, less detail.
 - **Port**: Use `--port 5000` (or another) if 8080 is in use.
 
+## n8n integration
+
+To run the API and call it from n8n (same machine or Docker), see **[N8N_INTEGRATION.md](N8N_INTEGRATION.md)** for step-by-step "Try it now" and optional MySQL storage.
+
 ## Requirements
 
 - Python 3.8–3.11
