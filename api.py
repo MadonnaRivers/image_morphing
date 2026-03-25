@@ -8,14 +8,14 @@ Run server (from project root):
 Then POST an image:
   curl -X POST "http://localhost:8000/analyze" -F "file=@your_image.jpg"
 
-Uploads are normalized to FORENSICSAM_IMAGE_SIZE x FORENSICSAM_IMAGE_SIZE (default 512) before
-inference. If the image is already that size, it is left unchanged. Env FORENSICSAM_IMAGE_SIZE
-can be 512, 768, or 1024.
+Env FORENSICSAM_IMAGE_SIZE controls model inference size (default 1024).
+Accepted values: 512, 768, 1024.
 """
 import asyncio
 import json
 import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -25,22 +25,14 @@ from fastapi.responses import JSONResponse
 # Project root
 ROOT = Path(__file__).resolve().parent
 DETECTOR_SCRIPT = ROOT / "image_classifier" / "predict.py"
-_DETECTOR_VENV_WIN = ROOT / "image_classifier" / "venv" / "Scripts" / "python.exe"
-_DETECTOR_VENV_UNIX = ROOT / "image_classifier" / "venv" / "bin" / "python"
-if _DETECTOR_VENV_WIN.exists():
-    DETECTOR_PYTHON = _DETECTOR_VENV_WIN
-elif _DETECTOR_VENV_UNIX.exists():
-    DETECTOR_PYTHON = _DETECTOR_VENV_UNIX
-else:
-    import sys
-    DETECTOR_PYTHON = Path(sys.executable)  # use current Python (same venv)
+DETECTOR_PYTHON = Path(sys.executable)  # single-venv setup: always use API venv Python
 
 app = FastAPI(title="Image Forensics API", description="ForensicsSAM + AI vs Human detector")
 
 # ForensicsSAM inference size; must match normalized upload dimensions.
-_IMAGE_SIZE = int(os.environ.get("FORENSICSAM_IMAGE_SIZE", "512"))
+_IMAGE_SIZE = int(os.environ.get("FORENSICSAM_IMAGE_SIZE", "1024"))
 if _IMAGE_SIZE not in (512, 768, 1024):
-    _IMAGE_SIZE = 512
+    _IMAGE_SIZE = 1024
 
 # Load ForensicsSAM once at startup
 _forensics_sam = None
@@ -71,29 +63,6 @@ def _load_forensics_models():
     _forensics_sam = ForensicsSAM(sam, 8).to(_device).eval()
     _adv_detector = AdversaryDetector().to(_device).eval()
     _adv_detector.load_detector(str(ROOT / "weight" / "adversary_detector.pth"))
-
-
-def _normalize_upload_to_model_size(path: str) -> dict:
-    """Resize image on disk to _IMAGE_SIZE x _IMAGE_SIZE if needed; overwrites path. Returns metadata."""
-    import cv2
-
-    bgr = cv2.imread(path)
-    if bgr is None:
-        raise ValueError("Could not read or decode image file")
-    h, w = bgr.shape[:2]
-    info = {
-        "original_width": w,
-        "original_height": h,
-        "input_resized": False,
-    }
-    if w != _IMAGE_SIZE or h != _IMAGE_SIZE:
-        interp = cv2.INTER_AREA if w >= _IMAGE_SIZE and h >= _IMAGE_SIZE else cv2.INTER_LINEAR
-        bgr = cv2.resize(bgr, (_IMAGE_SIZE, _IMAGE_SIZE), interp)
-        info["input_resized"] = True
-    cv2.imwrite(path, bgr)
-    info["processing_width"] = _IMAGE_SIZE
-    info["processing_height"] = _IMAGE_SIZE
-    return info
 
 
 def _run_forensics_sam_sync(image_path: str) -> dict:
@@ -214,22 +183,21 @@ async def analyze(file: UploadFile = File(...)):
         tmp.write(body)
         tmp_path = tmp.name
 
-    try:
-        normalize_info = _normalize_upload_to_model_size(tmp_path)
-    except ValueError as e:
-        try:
-            os.unlink(tmp_path)
-        except OSError:
-            pass
-        raise HTTPException(400, str(e)) from e
-
+    import cv2
+    meta_img = cv2.imread(tmp_path)
+    if meta_img is not None:
+        h, w = meta_img.shape[:2]
+        image_width, image_height = w, h
+    else:
+        image_width, image_height = None, None
     metadata = {
         "filename": file.filename,
         "content_type": file.content_type,
         "file_size_bytes": len(body),
+        "width": image_width,
+        "height": image_height,
         "format": suffix.lstrip(".").lower() or "jpg",
         "forensicsam_inference_size": _IMAGE_SIZE,
-        **normalize_info,
     }
 
     try:

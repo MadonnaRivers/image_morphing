@@ -1,0 +1,10 @@
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/ForensicsSAM
+ExecStart=/home/ubuntu/ForensicsSAM/venv/bin/uvicorn api:app --host 0.0.0.0 --port 8000
+Restart=always
+Environment=PATH=/home/ubuntu/ForensicsSAM/venv/bin:/usr/bin
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

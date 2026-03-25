@@ -1,30 +1,25 @@
-# ForensicsSAM + AI-vs-Human Image Detector — combined dependencies
-# Python 3.8–3.11. Install from repo root: pip install -r requirements.txt
-# CPU-only: pip install torch torchvision (no CUDA). GPU: install PyTorch with your CUDA version from pytorch.org
+# API + ForensicsSAM + AI-vs-Human detector — CPU only
+# Install (from repo root):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+#   pip install -r requirements.txt
+# Then: python download_weights.py  (once),  uvicorn api:app --host 127.0.0.1 --port 8080
 
-# --- Core (ForensicsSAM) ---
+# --- ForensicsSAM (api.py in-process) ---
 torch>=2.0.0
 torchvision>=0.15.0
 timm
 numpy
 opencv-python
-pandas
-tqdm
-matplotlib
 
 # --- API ---
 fastapi
 uvicorn[standard]
 
-# --- Weights download (download_weights.py) ---
+# --- Weights download (optional, run once) ---
 gdown
 huggingface_hub
 
-# --- Segment Anything (build_sam.py) ---
-icecream
-
-# --- Image classifier (image_classifier/) ---
-# Used when running predict.py; API calls it as subprocess (can use own venv).
+# --- AI-vs-Human detector (predict.py; same API venv) ---
 transformers
 Pillow
 accelerate
