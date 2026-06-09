@@ -12,9 +12,7 @@ Env FORENSICSAM_IMAGE_SIZE controls model inference size (default 1024).
 Accepted values: 512, 768, 1024.
 """
 import asyncio
-import json
 import os
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -24,8 +22,7 @@ from fastapi.responses import JSONResponse
 
 # Project root
 ROOT = Path(__file__).resolve().parent
-DETECTOR_SCRIPT = ROOT / "image_classifier" / "predict.py"
-DETECTOR_PYTHON = Path(sys.executable)  # single-venv setup: always use API venv Python
+DETECTOR_MODEL_DIR = ROOT / "image_classifier"
 
 app = FastAPI(title="Image Forensics API", description="ForensicsSAM + AI vs Human detector")
 
@@ -47,6 +44,10 @@ _checkpoint = {
 }
 
 
+_detector_model = None
+_detector_processor = None
+
+
 def _load_forensics_models():
     global _forensics_sam, _adv_detector, _device
     if _forensics_sam is not None:
@@ -63,6 +64,16 @@ def _load_forensics_models():
     _forensics_sam = ForensicsSAM(sam, 8).to(_device).eval()
     _adv_detector = AdversaryDetector().to(_device).eval()
     _adv_detector.load_detector(str(ROOT / "weight" / "adversary_detector.pth"))
+
+
+def _load_detector_model():
+    """Load the AI-vs-Human classifier (Organika/sdxl-detector, Swin-T) once at startup."""
+    global _detector_model, _detector_processor
+    if _detector_model is not None:
+        return
+    from transformers import AutoImageProcessor, AutoModelForImageClassification
+    _detector_processor = AutoImageProcessor.from_pretrained(str(DETECTOR_MODEL_DIR))
+    _detector_model = AutoModelForImageClassification.from_pretrained(str(DETECTOR_MODEL_DIR)).eval()
 
 
 def _run_forensics_sam_sync(image_path: str) -> dict:
@@ -121,43 +132,84 @@ def _run_forensics_sam_sync(image_path: str) -> dict:
 
     three_panel = np.hstack([orig_panel, heat_panel, blend_panel])
 
-    # Add title bar
-    title_h = 30
-    title_bar = np.ones((title_h, three_panel.shape[1], 3), dtype=np.uint8) * 255
-    cv2.putText(title_bar, f"ForensicsSAM: {label.upper()} ({prob:.4f})", (10, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 2)
-    out_bgr = np.vstack([title_bar, three_panel])
-    _, png_bytes = cv2.imencode(".png", out_bgr)
-    b64 = base64.b64encode(png_bytes.tobytes()).decode("utf-8")
+    # Per-panel caption strip (formal labels under each panel)
+    cap_h = 26
+    cap_bar = np.ones((cap_h, three_panel.shape[1], 3), dtype=np.uint8) * 240
+    panel_w = three_panel.shape[1] // 3
+    for i, name in enumerate(("Original", "Forgery Heatmap", "Mask Overlay")):
+        (tw, _th), _ = cv2.getTextSize(name, cv2.FONT_HERSHEY_SIMPLEX, 0.55, 1)
+        x = i * panel_w + (panel_w - tw) // 2
+        cv2.putText(cap_bar, name, (x, 18), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (40, 40, 40), 1, cv2.LINE_AA)
+
+    panel_with_caption = np.vstack([three_panel, cap_bar])
 
     return {
         "predicted_label": label,
         "confidence": round(prob, 4),
         "probability_forged": prob,
-        "image_base64": b64,
-        "image_data_url": f"data:image/png;base64,{b64}",
+        "_panel_bgr": panel_with_caption,  # consumed by handler to compose final visualization
     }
 
 
+def _compose_visualization(forensics: dict, detector: dict) -> tuple:
+    """Add a formal two-line header (ForensicsSAM + AI-vs-Human) above the panel strip."""
+    import base64
+    import numpy as np
+    import cv2
+
+    panel = forensics.pop("_panel_bgr", None)
+    if panel is None:
+        return None, None
+
+    header_h = 60
+    width = panel.shape[1]
+    header = np.ones((header_h, width, 3), dtype=np.uint8) * 255
+
+    f_label = str(forensics.get("predicted_label", "?")).upper()
+    f_conf = forensics.get("confidence", 0.0)
+    d_label = str(detector.get("predicted_label", "?")).upper() if isinstance(detector, dict) else "?"
+    d_conf = float(detector.get("confidence", 0.0)) if isinstance(detector, dict) else 0.0
+
+    line1 = f"ForensicsSAM     : {f_label}  ({f_conf:.4f})"
+    line2 = f"AI-vs-Human      : {d_label}  ({d_conf:.4f})"
+    cv2.putText(header, line1, (12, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.62, (0, 0, 0), 1, cv2.LINE_AA)
+    cv2.putText(header, line2, (12, 48), cv2.FONT_HERSHEY_SIMPLEX, 0.62, (0, 0, 0), 1, cv2.LINE_AA)
+    cv2.line(header, (0, header_h - 1), (width, header_h - 1), (180, 180, 180), 1)
+
+    out_bgr = np.vstack([header, panel])
+    _, png_bytes = cv2.imencode(".png", out_bgr)
+    b64 = base64.b64encode(png_bytes.tobytes()).decode("utf-8")
+    return b64, f"data:image/png;base64,{b64}"
+
+
 def _run_detector_sync(image_path: str) -> dict:
-    """Run AI-vs-Human detector subprocess (sync, for use in executor on Windows)."""
-    result = subprocess.run(
-        [str(DETECTOR_PYTHON), str(DETECTOR_SCRIPT), image_path, "--json"],
-        capture_output=True,
-        cwd=str(ROOT),
-        timeout=120,
-    )
-    if result.returncode != 0:
-        err = (result.stderr or result.stdout).decode().strip() or "Detector failed"
-        return {"error": err}
+    """Run AI-vs-Human classifier inline (model loaded once at startup, no subprocess)."""
+    import torch
+    from PIL import Image
+
+    _load_detector_model()
     try:
-        return json.loads(result.stdout.decode().strip())
+        image = Image.open(image_path).convert("RGB")
     except Exception as e:
-        return {"error": f"Parse error: {e}", "raw": result.stdout.decode()[:200]}
+        return {"error": f"Could not open image: {e}"}
+    inputs = _detector_processor(images=image, return_tensors="pt")
+    with torch.no_grad():
+        logits = _detector_model(**inputs).logits
+    probs = torch.softmax(logits, dim=-1)[0]
+    idx2label = _detector_model.config.id2label
+    scores = {idx2label[i]: float(probs[i].item()) for i in idx2label}
+    top_idx = int(torch.argmax(logits, dim=-1).item())
+    return {
+        "predicted_label": idx2label[top_idx],
+        "confidence": float(probs[top_idx].item()),
+        "scores": scores,
+    }
 
 
 @app.on_event("startup")
 async def startup():
     _load_forensics_models()
+    _load_detector_model()
 
 
 @app.get("/")
@@ -179,17 +231,40 @@ async def analyze(file: UploadFile = File(...)):
         body = await file.read()
     except Exception as e:
         raise HTTPException(400, f"Failed to read file: {e}")
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix, dir=ROOT) as tmp:
-        tmp.write(body)
-        tmp_path = tmp.name
-
+    loop = asyncio.get_running_loop()
     import cv2
-    meta_img = cv2.imread(tmp_path)
-    if meta_img is not None:
-        h, w = meta_img.shape[:2]
-        image_width, image_height = w, h
-    else:
-        image_width, image_height = None, None
+    import numpy as np
+
+    def _write_and_normalize():
+        """Decode upload, capture original dims, resize to model size, save normalized file."""
+        arr = np.frombuffer(body, dtype=np.uint8)
+        img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+        if img is None:
+            return None, None, None
+        orig_h, orig_w = img.shape[:2]
+        # Single upfront resize to model inference size so both pipelines see identical input.
+        resized = cv2.resize(img, (_IMAGE_SIZE, _IMAGE_SIZE), interpolation=cv2.INTER_AREA)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".png", dir=ROOT) as tmp:
+            cv2.imwrite(tmp.name, resized)
+            return tmp.name, orig_w, orig_h
+
+    tmp_path, image_width, image_height = await loop.run_in_executor(None, _write_and_normalize)
+    if tmp_path is None:
+        raise HTTPException(400, "Could not decode image")
+
+    forensics_task = loop.run_in_executor(None, _run_forensics_sam_sync, tmp_path)
+    detector_task = loop.run_in_executor(None, _run_detector_sync, tmp_path)
+
+    try:
+        forensics_result, detector_result = await asyncio.gather(forensics_task, detector_task)
+    finally:
+        await loop.run_in_executor(None, lambda: os.unlink(tmp_path) if os.path.exists(tmp_path) else None)
+
+    b64, data_url = _compose_visualization(forensics_result, detector_result)
+    if b64 is not None:
+        forensics_result["image_base64"] = b64
+        forensics_result["image_data_url"] = data_url
+
     metadata = {
         "filename": file.filename,
         "content_type": file.content_type,
@@ -199,17 +274,6 @@ async def analyze(file: UploadFile = File(...)):
         "format": suffix.lstrip(".").lower() or "jpg",
         "forensicsam_inference_size": _IMAGE_SIZE,
     }
-
-    try:
-        loop = asyncio.get_event_loop()
-        forensics_task = loop.run_in_executor(None, _run_forensics_sam_sync, tmp_path)
-        detector_task = loop.run_in_executor(None, _run_detector_sync, tmp_path)
-        forensics_result, detector_result = await asyncio.gather(forensics_task, detector_task)
-    finally:
-        try:
-            os.unlink(tmp_path)
-        except Exception:
-            pass
     return JSONResponse(content={
         "forensicsam": forensics_result,
         "ai_vs_human": detector_result,

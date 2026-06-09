@@ -9,7 +9,10 @@ import sys
 import zipfile
 from pathlib import Path
 
-WEIGHT_DIR = Path(__file__).resolve().parent / "weight"
+ROOT = Path(__file__).resolve().parent
+WEIGHT_DIR = ROOT / "weight"
+CLASSIFIER_DIR = ROOT / "image_classifier"
+CLASSIFIER_HF_REPO = "Organika/sdxl-detector"
 GD_FILE_ID = "1stLg8bJ1W2E7dVAHC8TYj917REO4sttt"
 # Hugging Face SAM checkpoints (fallback if not in GD bundle)
 SAM_HF_REPOS = {
@@ -91,6 +94,31 @@ def download_sam_from_huggingface(filename: str) -> bool:
     return False
 
 
+def download_classifier_from_huggingface() -> bool:
+    """Pull the AI-vs-Human classifier (Organika/sdxl-detector, ~347 MB) into image_classifier/."""
+    target = CLASSIFIER_DIR / "model.safetensors"
+    if target.exists() and target.stat().st_size > 0:
+        print(f"OK: classifier weights already present ({target})")
+        return True
+    try:
+        from huggingface_hub import snapshot_download
+    except ImportError:
+        print("Install huggingface_hub: pip install huggingface_hub")
+        return False
+    CLASSIFIER_DIR.mkdir(parents=True, exist_ok=True)
+    print(f"Downloading {CLASSIFIER_HF_REPO} into {CLASSIFIER_DIR}...")
+    try:
+        snapshot_download(
+            repo_id=CLASSIFIER_HF_REPO,
+            local_dir=str(CLASSIFIER_DIR),
+            allow_patterns=["*.json", "*.safetensors", "*.txt"],
+        )
+        return target.exists()
+    except Exception as e:
+        print(f"Classifier download failed: {e}")
+        return False
+
+
 def main() -> int:
     ensure_weight_dir()
 
@@ -112,7 +140,10 @@ def main() -> int:
         else:
             print(f"Could not get {name}")
 
-    # 3) List what we have
+    # 3) AI-vs-Human classifier (Swin-T, Organika/sdxl-detector)
+    download_classifier_from_huggingface()
+
+    # 4) List what we have
     required = [
         "sam_vit_h_4b8939.pth",
         "adversary_detector.pth",
@@ -120,11 +151,13 @@ def main() -> int:
         "forgery_experts.pth",
     ]
     missing = [r for r in required if not (WEIGHT_DIR / r).exists()]
+    if not (CLASSIFIER_DIR / "model.safetensors").exists():
+        missing.append("image_classifier/model.safetensors")
     if missing:
         print("\nStill missing (required for inference):", missing)
         print("Download the bundle from: https://drive.google.com/file/d/1stLg8bJ1W2E7dVAHC8TYj917REO4sttt/view")
         return 1
-    print("\nAll required weights are present. Run: python inference.py")
+    print("\nAll required weights are present. Run: python -m uvicorn api:app")
     return 0
 
 

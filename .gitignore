@@ -22,5 +22,22 @@ weight/*.zip
 image_classifier/venv/
 image_classifier/.cache/
 
+# Image classifier weights + configs (download via download_weights.py)
+image_classifier/*.safetensors
+image_classifier/config.json
+image_classifier/preprocessor_config.json
+image_classifier/training_params.json
+image_classifier/checkpoint-*/
+image_classifier/onnx/
+image_classifier/.gitattributes
+
+# Local test inputs / generated visualizations
+sample.jpeg
+example.jpeg
+tmp*.jpeg
+tmp*.jpg
+tmp*.png
+*_vis.png
+
 # Optional: large test data (uncomment if you don't want to push)
 # test_folder/
