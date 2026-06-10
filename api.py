@@ -11,8 +11,11 @@ Then POST an image:
 Env FORENSICSAM_IMAGE_SIZE controls model inference size (default 1024).
 Accepted values: 512, 768, 1024.
 """
-import asyncio
 import os
+os.environ["USE_TF"] = "0"
+os.environ["USE_FLAX"] = "0"
+
+import asyncio
 import sys
 import tempfile
 from pathlib import Path
@@ -161,7 +164,7 @@ def _compose_visualization(forensics: dict, detector: dict) -> tuple:
     if panel is None:
         return None, None
 
-    header_h = 60
+    header_h = 70
     width = panel.shape[1]
     header = np.ones((header_h, width, 3), dtype=np.uint8) * 255
 
@@ -170,16 +173,27 @@ def _compose_visualization(forensics: dict, detector: dict) -> tuple:
     d_label = str(detector.get("predicted_label", "?")).upper() if isinstance(detector, dict) else "?"
     d_conf = float(detector.get("confidence", 0.0)) if isinstance(detector, dict) else 0.0
 
-    line1 = f"ForensicsSAM     : {f_label}  ({f_conf:.4f})"
-    line2 = f"AI-vs-Human      : {d_label}  ({d_conf:.4f})"
-    cv2.putText(header, line1, (12, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.62, (0, 0, 0), 1, cv2.LINE_AA)
-    cv2.putText(header, line2, (12, 48), cv2.FONT_HERSHEY_SIMPLEX, 0.62, (0, 0, 0), 1, cv2.LINE_AA)
+    line1 = f"ForensicsSAM  :  {f_label}  {f_conf * 100:.1f}%"
+    line2 = f"AI Classifier  :  {d_label}  {d_conf * 100:.1f}%"
+
+    f_color = (0, 0, 180) if f_label == "FORGED" else (0, 140, 0)
+    d_color = (180, 0, 0) if d_label == "AI" else (0, 140, 0)
+
+    cv2.putText(header, line1, (12, 26), cv2.FONT_HERSHEY_SIMPLEX, 0.65, f_color, 1, cv2.LINE_AA)
+    cv2.putText(header, line2, (12, 54), cv2.FONT_HERSHEY_SIMPLEX, 0.65, d_color, 1, cv2.LINE_AA)
     cv2.line(header, (0, header_h - 1), (width, header_h - 1), (180, 180, 180), 1)
 
     out_bgr = np.vstack([header, panel])
     _, png_bytes = cv2.imencode(".png", out_bgr)
     b64 = base64.b64encode(png_bytes.tobytes()).decode("utf-8")
     return b64, f"data:image/png;base64,{b64}"
+
+
+_LABEL_MAP = {"artificial": "ai", "human": "real"}
+
+
+def _normalize_label(label: str) -> str:
+    return _LABEL_MAP.get(label.lower(), label.lower())
 
 
 def _run_detector_sync(image_path: str) -> dict:
@@ -197,10 +211,10 @@ def _run_detector_sync(image_path: str) -> dict:
         logits = _detector_model(**inputs).logits
     probs = torch.softmax(logits, dim=-1)[0]
     idx2label = _detector_model.config.id2label
-    scores = {idx2label[i]: float(probs[i].item()) for i in idx2label}
+    scores = {_normalize_label(idx2label[i]): float(probs[i].item()) for i in idx2label}
     top_idx = int(torch.argmax(logits, dim=-1).item())
     return {
-        "predicted_label": idx2label[top_idx],
+        "predicted_label": _normalize_label(idx2label[top_idx]),
         "confidence": float(probs[top_idx].item()),
         "scores": scores,
     }

@@ -5,11 +5,12 @@ Usage: python predict.py <image_path> [--json]
        --json  print single-line JSON to stdout (for API)
 """
 import os
-import sys
-import json
-# Use saved processor behavior (avoids "slow image processor" warning)
+os.environ["USE_TF"] = "0"
+os.environ["USE_FLAX"] = "0"
 os.environ.setdefault("TRANSFORMERS_USE_FAST_IMAGE_PROCESSOR", "0")
 os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
+import sys
+import json
 import torch
 from pathlib import Path
 
@@ -76,13 +77,18 @@ def main():
         outputs = model(**inputs)
         logits = outputs.logits
 
+    _label_map = {"artificial": "ai", "human": "real"}
+
+    def _norm(lbl):
+        return _label_map.get(lbl.lower(), lbl.lower())
+
     predicted_class_idx = logits.argmax(-1).item()
-    predicted_label = model.config.id2label[predicted_class_idx]
+    predicted_label = _norm(model.config.id2label[predicted_class_idx])
     probabilities = torch.softmax(logits, dim=-1)
     predicted_prob = probabilities[0, predicted_class_idx].item()
 
     if json_output:
-        scores = {model.config.id2label[i]: float(probabilities[0, i].item()) for i in model.config.id2label}
+        scores = {_norm(model.config.id2label[i]): float(probabilities[0, i].item()) for i in model.config.id2label}
         out = {"predicted_label": predicted_label, "confidence": predicted_prob, "scores": scores}
         print(json.dumps(out))
         return
@@ -93,7 +99,7 @@ def main():
     print("-" * 40)
     print("Scores:")
     for i, label in model.config.id2label.items():
-        print(f"  {label}: {probabilities[0, i].item():.4f}")
+        print(f"  {_norm(label)}: {probabilities[0, i].item():.4f}")
 
 if __name__ == "__main__":
     main()

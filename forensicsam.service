@@ -1,10 +1,15 @@
+[Unit]
+Description=ForensicsSAM Image Forensics API
+After=network.target
+
 [Service]
-User=ubuntu
-WorkingDirectory=/home/ubuntu/ForensicsSAM
-ExecStart=/home/ubuntu/ForensicsSAM/venv/bin/uvicorn api:app --host 0.0.0.0 --port 8000
+User=kartik-joshi
+WorkingDirectory=/home/kartik-joshi/Desktop/image_morphing
+ExecStart=/usr/local/bin/python3.9 -m uvicorn api:app --host 0.0.0.0 --port 8000
 Restart=always
-Environment=PATH=/home/ubuntu/ForensicsSAM/venv/bin:/usr/bin
+Environment=PATH=/usr/local/bin:/usr/bin
 Environment=PYTHONUNBUFFERED=1
+Environment=FORENSICSAM_IMAGE_SIZE=1024
 
 [Install]
 WantedBy=multi-user.target
